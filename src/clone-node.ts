@@ -194,6 +194,40 @@ function decorate<T extends HTMLElement>(
   return clonedNode
 }
 
+function cloneScrollPosition<T extends HTMLElement>(
+  nativeNode: T,
+  clonedNode: T,
+) {
+  // If element is not scrolled, we don't need to move the children.
+  if (nativeNode.scrollTop === 0 && nativeNode.scrollLeft === 0) {
+    return clonedNode
+  }
+
+  for (let i = 0; i < clonedNode.children.length; i += 1) {
+    const child = clonedNode.children[i] as HTMLElement
+    // For each of the children, get the current transform and translate it with
+    // the native node's scroll position.
+    const { transform } = child.style
+    const matrix = new DOMMatrix(transform)
+
+    const { a, b, c, d } = matrix
+    // reset rotation/skew so it wont change the translate direction.
+    matrix.a = 1
+    matrix.b = 0
+    matrix.c = 0
+    matrix.d = 1
+    matrix.translateSelf(-nativeNode.scrollLeft, -nativeNode.scrollTop)
+    // restore rotation and skew
+    matrix.a = a
+    matrix.b = b
+    matrix.c = c
+    matrix.d = d
+    child.style.transform = matrix.toString()
+  }
+
+  return clonedNode
+}
+
 async function ensureSVGSymbols<T extends HTMLElement>(
   clone: T,
   options: Options,
@@ -254,5 +288,11 @@ export async function cloneNode<T extends HTMLElement>(
     .then((clonedNode) => cloneSingleNode(clonedNode, options) as Promise<T>)
     .then((clonedNode) => cloneChildren(node, clonedNode, options))
     .then((clonedNode) => decorate(node, clonedNode, options))
+    .then((clonedNode) => {
+      if (options.patchScroll) {
+        return cloneScrollPosition(node, clonedNode)
+      }
+      return clonedNode
+    })
     .then((clonedNode) => ensureSVGSymbols(clonedNode, options))
 }

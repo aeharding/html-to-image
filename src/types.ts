@@ -97,4 +97,11 @@ export interface Options {
    *
    */
   fetchRequestInit?: RequestInit
+  /**
+   * A boolean that enables scroll patching. By default we do not keep scroll position
+   * in the resulting image but in certain scenario it can be patched by applying
+   * reverse transform to the scrolled contents if direct children of the scroll
+   * containers are not text nodes.
+   */
+  patchScroll?: boolean
 }

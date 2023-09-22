@@ -297,6 +297,12 @@ Defaults to `image/png`
 
 An array of style property names. Can be used to manually specify which style properties are included when cloning nodes. This can be useful for performance-critical scenarios.
 
+### patchScroll
+
+A boolean that enables scroll patching. By default we do not keep scroll position in the resulting image but in certain scenario it can be patched by applying reverse transform to the scrolled contents if direct children of the scroll containers are not text nodes. As this may cause unexpected results in some cases, it is disabled by default.
+
+Defaults to `false`
+
 ## Browsers
 
 Only standard lib is currently used, but make sure your browser supports:
