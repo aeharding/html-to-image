@@ -204,6 +204,10 @@ function cloneScrollPosition<T extends HTMLElement>(
   }
 
   for (let i = 0; i < clonedNode.children.length; i += 1) {
+    if (!clonedNode.children) {
+      return
+    }
+
     const child = clonedNode.children[i] as HTMLElement
     // For each of the children, get the current transform and translate it with
     // the native node's scroll position.
