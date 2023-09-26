@@ -1,6 +1,6 @@
 {
   "name": "@justfork/html-to-image",
-  "version": "1.21.3",
+  "version": "1.21.4",
   "description": "Generates an image from a DOM node using HTML5 canvas and SVG.",
   "main": "lib/index.js",
   "module": "es/index.js",
@@ -35,7 +35,8 @@
     "test:debug": "karma start --browsers=Chrome --single-run=false --auto-watch --debug",
     "coveralls": "cat ./test/coverage/lcov.info | coveralls",
     "pretest": "rimraf ./test/coverage",
-    "prepare": "is-ci || husky install .husky"
+    "prepare": "is-ci || husky install .husky",
+    "prepublishOnly": "pnpm build"
   },
   "lint-staged": {
     "**/*.{js,jsx,tsx,ts,less,md,json}": [
