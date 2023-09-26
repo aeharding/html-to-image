@@ -186,13 +186,16 @@ function decorate<T extends HTMLElement>(
 ): T {
   if (isInstanceOfElement(clonedNode, Element)) {
     cloneCSSStyle(nativeNode, clonedNode, options)
+    cloneInputValue(nativeNode, clonedNode)
+    cloneSelectValue(nativeNode, clonedNode)
 
     if (!isInstanceOfElement(nativeNode, SVGElement)) {
       clonePseudoElements(nativeNode, clonedNode, options)
     }
 
-    cloneInputValue(nativeNode, clonedNode)
-    cloneSelectValue(nativeNode, clonedNode)
+    if (options.patchScroll) {
+      return cloneScrollPosition(nativeNode, clonedNode)
+    }
   }
 
   return clonedNode
@@ -203,7 +206,10 @@ function cloneScrollPosition<T extends HTMLElement>(
   clonedNode: T,
 ) {
   // If element is not scrolled, we don't need to move the children.
-  if (nativeNode.scrollTop === 0 && nativeNode.scrollLeft === 0) {
+  if (
+    (nativeNode.scrollTop === 0 && nativeNode.scrollLeft === 0) ||
+    !clonedNode.children
+  ) {
     return clonedNode
   }
 
@@ -298,11 +304,5 @@ export async function cloneNode<T extends HTMLElement>(
     .then((clonedNode) => cloneSingleNode(clonedNode, options) as Promise<T>)
     .then((clonedNode) => cloneChildren(node, clonedNode, options))
     .then((clonedNode) => decorate(node, clonedNode, options))
-    .then((clonedNode) => {
-      if (options.patchScroll) {
-        return cloneScrollPosition(node, clonedNode)
-      }
-      return clonedNode
-    })
     .then((clonedNode) => ensureSVGSymbols(clonedNode, options))
 }
