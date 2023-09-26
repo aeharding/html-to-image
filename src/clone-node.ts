@@ -127,7 +127,7 @@ function cloneCSSStyle<T extends HTMLElement>(
     targetStyle.cssText = sourceStyle.cssText
     targetStyle.transformOrigin = sourceStyle.transformOrigin
   } else {
-    getStyleProperties(options).forEach((name) => {
+    getStyleProperties(nativeNode, options).forEach((name) => {
       let value = sourceStyle.getPropertyValue(name)
       if (name === 'font-size' && value.endsWith('px')) {
         const reducedFont =
@@ -186,7 +186,11 @@ function decorate<T extends HTMLElement>(
 ): T {
   if (isInstanceOfElement(clonedNode, Element)) {
     cloneCSSStyle(nativeNode, clonedNode, options)
-    clonePseudoElements(nativeNode, clonedNode, options)
+
+    if (!isInstanceOfElement(nativeNode, SVGElement)) {
+      clonePseudoElements(nativeNode, clonedNode, options)
+    }
+
     cloneInputValue(nativeNode, clonedNode)
     cloneSelectValue(nativeNode, clonedNode)
   }
@@ -205,7 +209,7 @@ function cloneScrollPosition<T extends HTMLElement>(
 
   for (let i = 0; i < clonedNode.children.length; i += 1) {
     if (!clonedNode.children) {
-      return
+      continue
     }
 
     const child = clonedNode.children[i] as HTMLElement

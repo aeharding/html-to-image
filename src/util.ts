@@ -65,20 +65,96 @@ export function toArray<T>(arrayLike: any): T[] {
   return arr
 }
 
-let styleProps: string[] | null = null
-export function getStyleProperties(options: Options = {}): string[] {
-  if (styleProps) {
-    return styleProps
+export const isInstanceOfElement = <
+  T extends typeof Element | typeof HTMLElement | typeof SVGImageElement,
+>(
+  node: Element | HTMLElement | SVGImageElement,
+  instance: T,
+): node is T['prototype'] => {
+  if (node instanceof instance) return true
+
+  const nodePrototype = Object.getPrototypeOf(node)
+
+  if (nodePrototype === null) return false
+
+  return (
+    nodePrototype.constructor.name === instance.name ||
+    isInstanceOfElement(nodePrototype, instance)
+  )
+}
+
+const SVG_SPECIFIC_CSS_PROPERTIES = new Set([
+  'cx',
+  'cy',
+  'x',
+  'y',
+  'r',
+  'rx',
+  'ry',
+  'd',
+  'fill',
+  'alignment-baseline',
+  'baseline-shift',
+  'clip-rule',
+  'color-interpolation',
+  'color-interpolation-filters',
+  'color-rendering',
+  'dominant-baseline',
+  'fill-opacity',
+  'fill-rule',
+  'flood-color',
+  'flood-opacity',
+  'glyph-orientation-horizontal',
+  'glyph-orientation-vertical',
+  'lighting-color',
+  'marker-end',
+  'marker-mid',
+  'marker-start',
+  'paint-order',
+  'shape-rendering',
+  'stop-color',
+  'stop-opacity',
+  'stroke',
+  'stroke-dasharray',
+  'stroke-dashoffset',
+  'stroke-linecap',
+  'stroke-linejoin',
+  'stroke-miterlimit',
+  'stroke-opacity',
+  'stroke-width',
+  'text-anchor',
+  'vector-effect',
+])
+
+const styleProps: {
+  html: string[] | undefined
+  svg: string[] | undefined
+} = {
+  html: undefined,
+  svg: undefined,
+}
+export function getStyleProperties(
+  node: HTMLElement | SVGElement,
+  options: Options = {},
+): string[] {
+  const ns = isInstanceOfElement(node, SVGElement) ? 'svg' : 'html'
+
+  const cached = styleProps[ns]
+  if (cached) {
+    return cached
   }
 
-  if (options.includeStyleProperties) {
-    styleProps = options.includeStyleProperties
-    return styleProps
-  }
+  const props =
+    options.includeStyleProperties ??
+    toArray(window.getComputedStyle(document.documentElement))
 
-  styleProps = toArray(window.getComputedStyle(document.documentElement))
+  const result =
+    ns === 'html'
+      ? props.filter((p) => !SVG_SPECIFIC_CSS_PROPERTIES.has(p))
+      : [...props]
+  styleProps[ns] = result
 
-  return styleProps
+  return result
 }
 
 function px(node: HTMLElement, styleProperty: string) {
@@ -237,22 +313,4 @@ export async function nodeToDataURL(
   svg.appendChild(foreignObject)
   foreignObject.appendChild(node)
   return svgToDataURL(svg)
-}
-
-export const isInstanceOfElement = <
-  T extends typeof Element | typeof HTMLElement | typeof SVGImageElement,
->(
-  node: Element | HTMLElement | SVGImageElement,
-  instance: T,
-): node is T['prototype'] => {
-  if (node instanceof instance) return true
-
-  const nodePrototype = Object.getPrototypeOf(node)
-
-  if (nodePrototype === null) return false
-
-  return (
-    nodePrototype.constructor.name === instance.name ||
-    isInstanceOfElement(nodePrototype, instance)
-  )
 }

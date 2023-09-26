@@ -9,7 +9,8 @@ function formatCSSText(style: CSSStyleDeclaration) {
 }
 
 function formatCSSProperties(style: CSSStyleDeclaration, options: Options) {
-  return getStyleProperties(options)
+  // only HTML element support pseudo elements
+  return getStyleProperties(document.documentElement, options)
     .map((name) => {
       const value = style.getPropertyValue(name)
       const priority = style.getPropertyPriority(name)
