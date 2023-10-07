@@ -1,4 +1,4 @@
-import type { Options } from './types'
+import type { SupportedElement, Options } from './types'
 
 export function resolveUrl(url: string, baseUrl: string | null): string {
   // url is absolute already
@@ -55,7 +55,9 @@ export function delay<T>(ms: number) {
     })
 }
 
-export function toArray<T>(arrayLike: any): T[] {
+export function toArray<T>(
+  arrayLike: T[] | { length: number; [index: number]: T },
+): T[] {
   const arr: T[] = []
 
   for (let i = 0, l = arrayLike.length; i < l; i++) {
@@ -65,10 +67,14 @@ export function toArray<T>(arrayLike: any): T[] {
   return arr
 }
 
+export function isSupportedElement(element: Node): element is SupportedElement {
+  return 'style' in element
+}
+
 export const isInstanceOfElement = <
-  T extends typeof Element | typeof HTMLElement | typeof SVGImageElement,
+  T extends typeof HTMLElement | typeof SVGSVGElement | typeof MathMLElement,
 >(
-  node: Element | HTMLElement | SVGImageElement,
+  node: HTMLElement | SVGElement | MathMLElement,
   instance: T,
 ): node is T['prototype'] => {
   if (node instanceof instance) return true
@@ -134,7 +140,7 @@ const styleProps: {
   svg: undefined,
 }
 export function getStyleProperties(
-  node: HTMLElement | SVGElement,
+  node: SupportedElement,
   options: Options = {},
 ): string[] {
   const ns = isInstanceOfElement(node, SVGElement) ? 'svg' : 'html'
@@ -157,25 +163,28 @@ export function getStyleProperties(
   return result
 }
 
-function px(node: HTMLElement, styleProperty: string) {
+function px(node: SupportedElement, styleProperty: string) {
   const win = node.ownerDocument.defaultView || window
   const val = win.getComputedStyle(node).getPropertyValue(styleProperty)
   return val ? parseFloat(val.replace('px', '')) : 0
 }
 
-function getNodeWidth(node: HTMLElement) {
+function getNodeWidth(node: SupportedElement) {
   const leftBorder = px(node, 'border-left-width')
   const rightBorder = px(node, 'border-right-width')
   return node.clientWidth + leftBorder + rightBorder
 }
 
-function getNodeHeight(node: HTMLElement) {
+function getNodeHeight(node: SupportedElement) {
   const topBorder = px(node, 'border-top-width')
   const bottomBorder = px(node, 'border-bottom-width')
   return node.clientHeight + topBorder + bottomBorder
 }
 
-export function getImageSize(targetNode: HTMLElement, options: Options = {}) {
+export function getImageSize(
+  targetNode: SupportedElement,
+  options: Options = {},
+) {
   const width = options.width || getNodeWidth(targetNode)
   const height = options.height || getNodeHeight(targetNode)
 
@@ -292,7 +301,7 @@ export async function svgToDataURL(svg: SVGElement): Promise<string> {
 }
 
 export async function nodeToDataURL(
-  node: HTMLElement,
+  node: SupportedElement,
   width: number,
   height: number,
 ): Promise<string> {

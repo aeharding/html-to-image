@@ -1,10 +1,11 @@
-import type { Options } from './types'
+import type { SupportedElement, Options } from './types'
 import { clonePseudoElements } from './clone-pseudos'
 import {
   createImage,
   toArray,
   isInstanceOfElement,
   getStyleProperties,
+  isSupportedElement,
 } from './util'
 import { getMimeType } from './mimes'
 import { resourceToDataURL } from './dataurl'
@@ -37,11 +38,7 @@ async function cloneVideoElement(video: HTMLVideoElement, options: Options) {
 async function cloneIFrameElement(iframe: HTMLIFrameElement, options: Options) {
   try {
     if (iframe?.contentDocument?.body) {
-      return (await cloneNode(
-        iframe.contentDocument.body,
-        options,
-        true,
-      )) as HTMLBodyElement
+      return await cloneNode(iframe.contentDocument.body, options, true)
     }
   } catch {
     // Failed to clone iframe
@@ -50,10 +47,10 @@ async function cloneIFrameElement(iframe: HTMLIFrameElement, options: Options) {
   return iframe.cloneNode(false) as HTMLIFrameElement
 }
 
-async function cloneSingleNode<T extends HTMLElement>(
+async function cloneSingleElement<T extends SupportedElement>(
   node: T,
   options: Options,
-): Promise<HTMLElement> {
+): Promise<SupportedElement> {
   if (isInstanceOfElement(node, HTMLCanvasElement)) {
     return cloneCanvasElement(node)
   }
@@ -69,25 +66,30 @@ async function cloneSingleNode<T extends HTMLElement>(
   return node.cloneNode(false) as T
 }
 
-const isSlotElement = (node: HTMLElement): node is HTMLSlotElement =>
-  node.tagName != null && node.tagName.toUpperCase() === 'SLOT'
+const isSlotElement = (node: SupportedElement): node is HTMLSlotElement =>
+  node.tagName?.toUpperCase() === 'SLOT'
 
-async function cloneChildren<T extends HTMLElement>(
+async function cloneChildren<T extends SupportedElement>(
   nativeNode: T,
   clonedNode: T,
   options: Options,
 ): Promise<T> {
-  let children: T[] = []
+  let children: Node[] = []
 
   if (isSlotElement(nativeNode) && nativeNode.assignedNodes) {
-    children = toArray<T>(nativeNode.assignedNodes())
+    children = toArray(nativeNode.assignedNodes())
   } else if (
     isInstanceOfElement(nativeNode, HTMLIFrameElement) &&
     nativeNode.contentDocument?.body
   ) {
-    children = toArray<T>(nativeNode.contentDocument.body.childNodes)
+    children = toArray(nativeNode.contentDocument.body.childNodes)
   } else {
-    children = toArray<T>((nativeNode.shadowRoot ?? nativeNode).childNodes)
+    children = toArray(
+      ('shadowRoot' in nativeNode
+        ? nativeNode.shadowRoot ?? nativeNode
+        : nativeNode
+      ).childNodes,
+    )
   }
 
   if (
@@ -101,7 +103,7 @@ async function cloneChildren<T extends HTMLElement>(
     (deferred, child) =>
       deferred
         .then(() => cloneNode(child, options))
-        .then((clonedChild: HTMLElement | null) => {
+        .then((clonedChild) => {
           if (clonedChild) {
             clonedNode.appendChild(clonedChild)
           }
@@ -112,7 +114,7 @@ async function cloneChildren<T extends HTMLElement>(
   return clonedNode
 }
 
-function cloneCSSStyle<T extends HTMLElement>(
+function cloneCSSStyle<T extends SupportedElement>(
   nativeNode: T,
   clonedNode: T,
   options: Options,
@@ -156,7 +158,10 @@ function cloneCSSStyle<T extends HTMLElement>(
   }
 }
 
-function cloneInputValue<T extends HTMLElement>(nativeNode: T, clonedNode: T) {
+function cloneInputValue<T extends SupportedElement>(
+  nativeNode: T,
+  clonedNode: T,
+) {
   if (isInstanceOfElement(nativeNode, HTMLTextAreaElement)) {
     clonedNode.innerHTML = nativeNode.value
   }
@@ -166,7 +171,10 @@ function cloneInputValue<T extends HTMLElement>(nativeNode: T, clonedNode: T) {
   }
 }
 
-function cloneSelectValue<T extends HTMLElement>(nativeNode: T, clonedNode: T) {
+function cloneSelectValue<T extends SupportedElement>(
+  nativeNode: T,
+  clonedNode: T,
+) {
   if (isInstanceOfElement(nativeNode, HTMLSelectElement)) {
     const clonedSelect = clonedNode as any as HTMLSelectElement
     const selectedOption = Array.from(clonedSelect.children).find(
@@ -179,19 +187,20 @@ function cloneSelectValue<T extends HTMLElement>(nativeNode: T, clonedNode: T) {
   }
 }
 
-function decorate<T extends HTMLElement>(
+function decorate<T extends SupportedElement>(
   nativeNode: T,
   clonedNode: T,
   options: Options,
 ): T {
-  if (isInstanceOfElement(clonedNode, Element)) {
-    cloneCSSStyle(nativeNode, clonedNode, options)
+  cloneCSSStyle(nativeNode, clonedNode, options)
+
+  if (
+    isInstanceOfElement(nativeNode, HTMLElement) &&
+    isInstanceOfElement(clonedNode, HTMLElement)
+  ) {
     cloneInputValue(nativeNode, clonedNode)
     cloneSelectValue(nativeNode, clonedNode)
-
-    if (!isInstanceOfElement(nativeNode, SVGElement)) {
-      clonePseudoElements(nativeNode, clonedNode, options)
-    }
+    clonePseudoElements(nativeNode, clonedNode, options)
 
     if (options.patchScroll) {
       return cloneScrollPosition(nativeNode, clonedNode)
@@ -244,7 +253,7 @@ function cloneScrollPosition<T extends HTMLElement>(
   return clonedNode
 }
 
-async function ensureSVGSymbols<T extends HTMLElement>(
+async function ensureSVGSymbols<T extends SupportedElement>(
   clone: T,
   options: Options,
 ) {
@@ -253,13 +262,13 @@ async function ensureSVGSymbols<T extends HTMLElement>(
     return clone
   }
 
-  const processedDefs: { [key: string]: HTMLElement } = {}
+  const processedDefs: { [key: string]: SupportedElement } = {}
   for (let i = 0; i < uses.length; i++) {
     const use = uses[i]
     const id = use.getAttribute('xlink:href')
     if (id) {
       const exist = clone.querySelector(id)
-      const definition = document.querySelector(id) as HTMLElement
+      const definition = document.querySelector<SupportedElement>(id)
       if (!exist && definition && !processedDefs[id]) {
         // eslint-disable-next-line no-await-in-loop
         processedDefs[id] = (await cloneNode(definition, options, true))!
@@ -291,17 +300,31 @@ async function ensureSVGSymbols<T extends HTMLElement>(
   return clone
 }
 
-export async function cloneNode<T extends HTMLElement>(
+export async function cloneNode<T extends SupportedElement>(
   node: T,
   options: Options,
+  isRoot: true,
+): Promise<T>
+export async function cloneNode<T extends Node>(
+  node: T,
+  options: Options,
+  isRoot?: false,
+): Promise<T>
+export async function cloneNode<T extends Node>(
+  node: Node,
+  options: Options,
   isRoot?: boolean,
-): Promise<T | null> {
+): Promise<typeof isRoot extends true ? SupportedElement : Node | null> {
   if (!isRoot && options.filter && !options.filter(node)) {
     return null
   }
 
+  if (!isSupportedElement(node)) {
+    return node.cloneNode(false) as T
+  }
+
   return Promise.resolve(node)
-    .then((clonedNode) => cloneSingleNode(clonedNode, options) as Promise<T>)
+    .then((clonedNode) => cloneSingleElement(clonedNode, options))
     .then((clonedNode) => cloneChildren(node, clonedNode, options))
     .then((clonedNode) => decorate(node, clonedNode, options))
     .then((clonedNode) => ensureSVGSymbols(clonedNode, options))

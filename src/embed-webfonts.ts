@@ -1,4 +1,4 @@
-import type { Options } from './types'
+import type { SupportedElement, Options } from './types'
 import { toArray } from './util'
 import { fetchAsDataURL } from './dataurl'
 import { shouldEmbed, embedResources } from './embed-resources'
@@ -104,18 +104,18 @@ function parseCSS(source: string) {
 async function getCSSRules(
   styleSheets: CSSStyleSheet[],
   options: Options,
-): Promise<CSSStyleRule[]> {
-  const ret: CSSStyleRule[] = []
+): Promise<CSSRule[]> {
+  const ret: CSSRule[] = []
   const deferreds: Promise<number | void>[] = []
 
   // First loop inlines imports
   styleSheets.forEach((sheet) => {
     if ('cssRules' in sheet) {
       try {
-        toArray<CSSRule>(sheet.cssRules || []).forEach((item, index) => {
-          if (item.type === CSSRule.IMPORT_RULE) {
+        toArray(sheet.cssRules || []).forEach((rule, index) => {
+          if (rule instanceof CSSImportRule) {
             let importIndex = index + 1
-            const url = (item as CSSImportRule).href
+            const url = rule.href
             const deferred = fetchCSS(url)
               .then((metadata) => embedFonts(metadata, options))
               .then((cssText) =>
@@ -169,7 +169,7 @@ async function getCSSRules(
     styleSheets.forEach((sheet) => {
       if ('cssRules' in sheet) {
         try {
-          toArray<CSSStyleRule>(sheet.cssRules || []).forEach((item) => {
+          toArray(sheet.cssRules || []).forEach((item) => {
             ret.push(item)
           })
         } catch (e) {
@@ -182,27 +182,29 @@ async function getCSSRules(
   })
 }
 
-function getWebFontRules(cssRules: CSSStyleRule[]): CSSStyleRule[] {
+function getWebFontRules(cssRules: CSSRule[]): CSSRule[] {
   return cssRules
-    .filter((rule) => rule.type === CSSRule.FONT_FACE_RULE)
-    .filter((rule) => shouldEmbed(rule.style.getPropertyValue('src')))
+    .filter((rule) => rule instanceof CSSFontFaceRule)
+    .filter((rule: CSSFontFaceRule) =>
+      shouldEmbed(rule.style.getPropertyValue('src')),
+    )
 }
 
-async function parseWebFontRules<T extends HTMLElement>(
+async function parseWebFontRules<T extends SupportedElement>(
   node: T,
   options: Options,
-) {
+): Promise<CSSRule[]> {
   if (node.ownerDocument == null) {
     throw new Error('Provided element is not within a Document')
   }
 
-  const styleSheets = toArray<CSSStyleSheet>(node.ownerDocument.styleSheets)
+  const styleSheets = toArray(node.ownerDocument.styleSheets)
   const cssRules = await getCSSRules(styleSheets, options)
 
   return getWebFontRules(cssRules)
 }
 
-export async function getWebFontCSS<T extends HTMLElement>(
+export async function getWebFontCSS<T extends SupportedElement>(
   node: T,
   options: Options,
 ): Promise<string> {
@@ -217,7 +219,7 @@ export async function getWebFontCSS<T extends HTMLElement>(
   return cssTexts.join('\n')
 }
 
-export async function embedWebFonts<T extends HTMLElement>(
+export async function embedWebFonts<T extends SupportedElement>(
   clonedNode: T,
   options: Options,
 ) {

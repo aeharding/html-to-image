@@ -1,4 +1,4 @@
-import { Options } from './types'
+import { SupportedElement, Options } from './types'
 import { cloneNode } from './clone-node'
 import { embedImages } from './embed-images'
 import { applyStyle } from './apply-style'
@@ -12,12 +12,12 @@ import {
   checkCanvasDimensions,
 } from './util'
 
-export async function toSvg<T extends HTMLElement>(
-  node: T,
+export async function toSvg(
+  node: SupportedElement,
   options: Options = {},
 ): Promise<string> {
   const { width, height } = getImageSize(node, options)
-  const clonedNode = (await cloneNode(node, options, true)) as HTMLElement
+  const clonedNode = await cloneNode(node, options, true)
   await embedWebFonts(clonedNode, options)
   await embedImages(clonedNode, options)
   applyStyle(clonedNode, options)
@@ -25,8 +25,8 @@ export async function toSvg<T extends HTMLElement>(
   return datauri
 }
 
-export async function toCanvas<T extends HTMLElement>(
-  node: T,
+export async function toCanvas(
+  node: SupportedElement,
   options: Options = {},
 ): Promise<HTMLCanvasElement> {
   const { width, height } = getImageSize(node, options)
@@ -58,8 +58,8 @@ export async function toCanvas<T extends HTMLElement>(
   return canvas
 }
 
-export async function toPixelData<T extends HTMLElement>(
-  node: T,
+export async function toPixelData(
+  node: SupportedElement,
   options: Options = {},
 ): Promise<Uint8ClampedArray> {
   const { width, height } = getImageSize(node, options)
@@ -68,24 +68,24 @@ export async function toPixelData<T extends HTMLElement>(
   return ctx.getImageData(0, 0, width, height).data
 }
 
-export async function toPng<T extends HTMLElement>(
-  node: T,
+export async function toPng(
+  node: SupportedElement,
   options: Options = {},
 ): Promise<string> {
   const canvas = await toCanvas(node, options)
   return canvas.toDataURL()
 }
 
-export async function toJpeg<T extends HTMLElement>(
-  node: T,
+export async function toJpeg(
+  node: SupportedElement,
   options: Options = {},
 ): Promise<string> {
   const canvas = await toCanvas(node, options)
   return canvas.toDataURL('image/jpeg', options.quality || 1)
 }
 
-export async function toBlob<T extends HTMLElement>(
-  node: T,
+export async function toBlob(
+  node: SupportedElement,
   options: Options = {},
 ): Promise<Blob | null> {
   const canvas = await toCanvas(node, options)
@@ -93,8 +93,8 @@ export async function toBlob<T extends HTMLElement>(
   return blob
 }
 
-export async function getFontEmbedCSS<T extends HTMLElement>(
-  node: T,
+export async function getFontEmbedCSS(
+  node: SupportedElement,
   options: Options = {},
 ): Promise<string> {
   return getWebFontCSS(node, options)
