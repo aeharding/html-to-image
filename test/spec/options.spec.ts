@@ -11,6 +11,7 @@ import {
   assertTextRendered,
 } from './helper'
 import { toPng, toSvg } from '../../src'
+import { isSupportedElement } from '../../src/util'
 
 describe('work with options', () => {
   it('should apply width and height options to node copy being rendered', (done) => {
@@ -102,7 +103,7 @@ describe('work with options', () => {
       .then((node) =>
         toPng(node, {
           filter(node) {
-            if (node.classList) {
+            if (isSupportedElement(node)) {
               return !node.classList.contains('omit')
             }
             return true
@@ -119,7 +120,7 @@ describe('work with options', () => {
       .then((node) =>
         toPng(node, {
           filter(node) {
-            if (node.classList) {
+            if (isSupportedElement(node)) {
               return node.classList.contains('include')
             }
             return false

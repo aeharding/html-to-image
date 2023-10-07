@@ -4,7 +4,7 @@ import './setup'
 import { bootstrap, renderAndCheck } from './helper'
 
 describe('work with canvas element', () => {
-  xit('should render canvas element', (done) => {
+  it('should render canvas element', (done) => {
     bootstrap('canvas/node.html', 'canvas/style.css', 'canvas/image')
       .then((node) => {
         const canvas = node.querySelector('#content') as HTMLCanvasElement

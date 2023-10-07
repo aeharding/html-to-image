@@ -6,7 +6,7 @@ import { delay } from '../../src/util'
 import { assertTextRendered, bootstrap, renderAndCheck } from '../spec/helper'
 
 describe('special cases', () => {
-  xit('should not crash when loading external stylesheet causes error', (done) => {
+  it('should not crash when loading external stylesheet causes error', (done) => {
     bootstrap('ext-css/node.html', 'ext-css/style.css')
       .then(delay(1000))
       .then((node) => {
@@ -16,7 +16,7 @@ describe('special cases', () => {
       .catch(done)
   })
 
-  xit('should render content from shadow node of custom element', (done) => {
+  it('should render content from shadow node of custom element', (done) => {
     const link = document.createElement('link')
     const script = document.createElement('script')
     script.src = 'https://unpkg.com/mathlive/dist/mathlive.min.js'
@@ -35,21 +35,23 @@ describe('special cases', () => {
     ]
     document.head.append(script, link)
 
-    Promise.all(tasks).then(() =>
-      // eslint-disable-next-line promise/no-nesting
-      bootstrap(
-        'custom-element/node.html',
-        'custom-element/style.css',
-        'custom-element/image',
-      )
-        .then(delay(1000))
-        .then(renderAndCheck)
-        .then(() => {
-          link.remove()
-          script.remove()
-          done()
-        })
-        .catch(done),
+    Promise.all(tasks).then(
+      /* eslint-disable promise/no-nesting */
+      () =>
+        bootstrap(
+          'custom-element/node.html',
+          'custom-element/style.css',
+          'custom-element/image',
+        )
+          .then(delay(1000))
+          .then(renderAndCheck)
+          .then(() => {
+            link.remove()
+            script.remove()
+            done()
+          })
+          .catch(done),
+      /* eslint-enable promise/no-nesting */
     )
   })
 

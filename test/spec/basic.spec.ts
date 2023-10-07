@@ -223,7 +223,7 @@ describe('basic usage', () => {
       .catch(done)
   })
 
-  xit('should render content from <canvas>', (done) => {
+  it('should render content from <canvas>', (done) => {
     const text = 'AB2哈'
     bootstrap('canvas/node.html', 'canvas/style.css')
       .then((node) => {
