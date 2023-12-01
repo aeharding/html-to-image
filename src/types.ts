@@ -106,4 +106,8 @@ export interface Options {
    * containers are not text nodes.
    */
   patchScroll?: boolean
+
+  customDataURLFetch?: (
+    url: string,
+  ) => Promise<{ result: string; res: Response }>
 }

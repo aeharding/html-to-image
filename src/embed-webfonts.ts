@@ -42,6 +42,7 @@ async function embedFonts(data: Metadata, options: Options): Promise<string> {
         cssText = cssText.replace(loc, `url(${result})`)
         return [loc, result]
       },
+      options.customDataURLFetch,
     )
   })
 

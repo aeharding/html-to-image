@@ -16,7 +16,14 @@ export async function fetchAsDataURL<T>(
   url: string,
   init: RequestInit | undefined,
   process: (data: { result: string; res: Response }) => T,
+  customDataURLFetch?: (
+    url: string,
+  ) => Promise<{ result: string; res: Response }>,
 ): Promise<T> {
+  if (customDataURLFetch) {
+    return process(await customDataURLFetch(url))
+  }
+
   const res = await fetch(url, init)
   if (res.status === 404) {
     throw new Error(`Resource "${res.url}" not found`)
@@ -91,6 +98,7 @@ export async function resourceToDataURL(
         }
         return getContentFromDataUrl(result)
       },
+      options.customDataURLFetch,
     )
     dataURL = makeDataUrl(content, contentType!)
   } catch (error) {
